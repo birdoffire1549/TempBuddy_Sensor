@@ -499,7 +499,7 @@ void sendHtmlPageUsingTemplate(int code, String title, String heading, String &c
   result.replace("${heading}", heading);
   result.replace("${content}", content);
 
-  webServer.send(code, "text/html", content);
+  webServer.send(code, "text/html", result);
   yield();
 }
 
