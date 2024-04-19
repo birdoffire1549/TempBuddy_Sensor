@@ -271,15 +271,14 @@ void doStartNetwork() {
   webServer.begin();
   Serial.println(F("\nServer started."));
   
-  // Print the IP address...
-  Serial.printf(
-    "\nUse this URL to connect:\n\thttps://%s\n\n", 
-    (
-      (WiFi.getMode() == WiFiMode_t::WIFI_AP) 
-        ? WiFi.softAPIP().toString().c_str() 
-        : WiFi.localIP().toString().c_str()
-    )
+  ipAddr = (
+    (WiFi.getMode() == WiFiMode_t::WIFI_AP) 
+        ? WiFi.softAPIP().toString() 
+        : WiFi.localIP().toString()
   );
+
+  // Print the IP address...
+  Serial.printf("\nUse this URL to connect:\n\thttps://%s\n\n", ipAddr.c_str());
 }
 
 /**

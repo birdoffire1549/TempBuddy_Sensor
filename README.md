@@ -1,12 +1,4 @@
 # TempBuddy Sensor
-> [!IMPORTANT]
-> This project is in the process of being uplifted from an older version of the
-> firmware which I wrote some time ago. This uplifted version of the code uses
-> SSL and better security than the old code, but as of yet is not complete and 
-> as such might or not contain bugs and perhaps doesn't work properly.
-> Once the code is complete and tested then I will remove this flag from the
-> README document.
-
 ## High-level Overview
 This code enables an ESP8266 to obtain Temperature and Humidity readings from a connected AHT10 Device, it then presents the information upon request to any device which connects to its IP Address via HTTPS port 443. The data is in the form of a web-page with some formatting, and can be displayed in a web browser.
 
