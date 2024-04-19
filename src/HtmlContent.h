@@ -46,4 +46,9 @@
         "</form>"
     };
 
+    const char PROGMEM ROOT_PAGE[] = {
+        "Temperature:\t${temp}&deg;${unit}<br>"
+        "Humidity:\t${humidity}%<br><br>"
+    };
+
 #endif

@@ -299,9 +299,16 @@ void doStartAHT10() {
  */
 void endpointHandlerRoot() {
   // Build and send Information Page...
-  String content = String("")  
-    + "Temperature:\t" + ((tempSensor.readTemperature() * 9/5) + 32)  + "&deg;F<br>"
-    + "Humidity:\t" + tempSensor.readHumidity() + "%<br><br>";
+  String content = ROOT_PAGE;
+  if (settings.getIsCelsius()) {
+    content.replace("${temp}", String(tempSensor.readTemperature()).c_str());
+    content.replace("${unit}", "C");
+  } else {
+    content.replace("${temp}", String(((tempSensor.readTemperature() * 9/5) + 32)).c_str());
+    content.replace("${unit}", "F");
+  }
+  content.replace("${humidity}", String(tempSensor.readHumidity()).c_str());
+   
   sendHtmlPageUsingTemplate(200, settings.getTitle(), settings.getHeading(), content);
 }
 
