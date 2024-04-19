@@ -336,11 +336,11 @@ void endpointHandlerAdmin() {
   content.replace("${adminuser}", settings.getAdminUser());
   content.replace("${adminpwd}", settings.getAdminPwd());
   if (settings.getIsCelsius()) { // Units are in Celsius...
-    content.replace("${unitcchecked}", "true");
+    content.replace("${unitcchecked}", "checked");
     content.replace("${unitfchecked}", "");
   } else { // Units are in Fahrenheit...
     content.replace("${unitcchecked}", "");
-    content.replace("${unitfchecked}", "true");
+    content.replace("${unitfchecked}", "checked");
   }
   
   if (!handleAdminPageUpdates()) { // Client response not yet handled...

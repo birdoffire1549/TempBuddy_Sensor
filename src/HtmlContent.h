@@ -26,7 +26,7 @@
     };
 
     const char PROGMEM ADMIN_PAGE[] = {
-        "<form name=\"settings\" method=\"post\" id=\"settings\" action=\"update\"> "
+        "<form name=\"settings\" method=\"post\" id=\"settings\" action=\"admin\"> "
             "<h2>WiFi</h2> "
             "SSID: <input maxlength=\"32\" type=\"text\" value=\"${ssid}\" name=\"ssid\" id=\"ssid\"> <br> "
             "Password: <input maxlength=\"63\" type=\"text\" value=\"${pwd}\" name=\"pwd\" id=\"pwd\"> <br> "
