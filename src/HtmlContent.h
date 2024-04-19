@@ -36,6 +36,7 @@
             "Units:<br>"
             "<input type=\"radio\" id=\"celsius\" name=\"units\" value=\"celsius\" ${unitcchecked}>"
             "<label for=\"celsius\">Celsius</label>"
+            "<br>"
             "<input type=\"radio\" id=\"fahrenheit\" name=\"units\" value=\"fahrenheit\" ${unitfchecked}>"
             "<label for=\"fahrenheit\">Fahrenheit</label>"
             "<h2>Admin</h2> "

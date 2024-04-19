@@ -320,7 +320,7 @@ void endpointHandlerRoot() {
 void endpointHandlerAdmin() {
   /* Ensure user authenticated */
   Serial.println(F("Client requested access to '/admin'."));
-  if (!webServer.authenticate("admin", "admin")) { // User not authenticated...
+  if (!webServer.authenticate(settings.getAdminUser().c_str(), settings.getAdminPwd().c_str())) { // User not authenticated...
     Serial.println(F("Client not(yet) Authenticated!"));
 
     return webServer.requestAuthentication(DIGEST_AUTH, "AdminRealm", "Authentication failed!");
