@@ -111,6 +111,7 @@ void displayNextDigitIndicator();
 bool displayDigit(int digit);
 void displayNextOctetIndicator();
 void displayDone();
+void dumpFirmwareVersion();
 
 /***************************** 
  * SETUP() - REQUIRED FUNCTION
@@ -126,6 +127,8 @@ void setup() {
   // Initialize Serial for debug...
   Serial.begin(115200);
   delay(15);
+
+  dumpFirmwareVersion();
 
   // Initialize the device...
   Serial.println(F("\nInitializing device..."));
@@ -163,6 +166,7 @@ void checkIpDisplayRequest() {
     counter++;
     delay(1000);
   }
+  
   if (counter > 0 && counter < 6) {
     signalIpAddress(ipAddr, true);
   } else if (counter >= 6) {
@@ -510,6 +514,10 @@ void sendHtmlPageUsingTemplate(int code, String title, String heading, String &c
  * FALSE then entire IP is signaled.
  */
 void signalIpAddress(String ipAddress, bool quick) {
+  dumpFirmwareVersion();
+
+  Serial.printf("IP Address: %s\n\n", ipAddress.c_str());
+
   if (!quick) { // Whole IP Requested...
     int octet[3];
     
@@ -604,4 +612,17 @@ void displayDone() {
     digitalWrite(LED_PIN, HIGH);
     delay(100);
   }
+}
+
+/**
+ * The purpose of this function is to simply dump the software
+ * version to the serial console as desired. Additional information
+ * can be added here if needed going forward.
+*/
+void dumpFirmwareVersion() {
+    Serial.println(F("\n\n=================================="));
+    Serial.print(F("Firmware Version: "));
+    Serial.println(FIRMWARE_VERSION);
+    Serial.println(F("=================================="));
+    Serial.println("");
 }
