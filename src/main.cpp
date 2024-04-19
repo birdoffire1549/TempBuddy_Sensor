@@ -97,6 +97,7 @@ WiFiUDP udpService;
 // Global worker variables
 // ************************************************************************************
 String ipAddr = "0.0.0.0";
+String deviceId = "";
 IPAddress bcastAddress;
 unsigned long lastBcastMillis = 0UL;
 
@@ -130,12 +131,16 @@ void setup() {
   digitalWrite(LED_PIN, HIGH); // LED off; High = off and Low = On.
   pinMode(RESTORE_PIN, INPUT);
 
-  // Initialize Serial for debug...
+  /* Generate Device ID Based On MAC Address */
+  deviceId = Utils::genDeviceIdFromMacAddr(WiFi.macAddress());
+
+  /* Initialize Serial */
   Serial.begin(115200);
+  yield();
   delay(15);
 
   dumpFirmwareVersion();
-
+  
   // Initialize the device...
   Serial.println(F("\nInitializing device..."));
 
@@ -154,6 +159,7 @@ void setup() {
  * Here is where all functionality happens or starts to happen.
  */
 void loop() {
+  doBroadcast();
   checkIpDisplayRequest();
   webServer.handleClient();
   yield();
@@ -191,7 +197,7 @@ void connectToNetwork() {
   Serial.print(settings.getSsid());
   
   WiFi.setOutputPower(20.5F);
-  WiFi.setHostname(settings.getHostname().c_str());
+  WiFi.setHostname(settings.getHostname(deviceId).c_str());
   WiFi.mode(WiFiMode::WIFI_STA);
   WiFi.begin(settings.getSsid(), settings.getPwd());
 
@@ -213,7 +219,7 @@ void activateAPMode() {
   Serial.print(F("Configuring AP mode... "));
   
   WiFi.setOutputPower(20.5F);
-  WiFi.setHostname(settings.getHostname().c_str());
+  WiFi.setHostname(settings.getHostname(deviceId).c_str());
   WiFi.mode(WiFiMode::WIFI_AP);
   WiFi.softAPConfig(
     IpUtils::stringIPv4ToIPAddress(settings.getApNetIp()), 
@@ -221,9 +227,9 @@ void activateAPMode() {
     IpUtils::stringIPv4ToIPAddress(settings.getApSubnet())
   );
 
-  bool ret = WiFi.softAP(settings.getApSsid(), settings.getApPwd());
+  bool ret = WiFi.softAP(settings.getApSsid(deviceId), settings.getApPwd());
   if (ret) {
-    Serial.printf("\nUse the following to connect:\n\tSSID: %s\n\tPwd: %s\n\n", settings.getApSsid().c_str(), settings.getApPwd().c_str());
+    Serial.printf("\nUse the following to connect:\n\tSSID: %s\n\tPwd: %s\n\n", settings.getApSsid(deviceId).c_str(), settings.getApPwd().c_str());
   } else {
     Serial.println(F("ERROR: AP Setup Failed!"));
   }
@@ -629,19 +635,20 @@ void displayDone() {
 */
 void dumpFirmwareVersion() {
     Serial.println(F("\n\n=================================="));
-    Serial.print(F("Firmware Version: "));
-    Serial.println(FIRMWARE_VERSION);
-    Serial.println(F("=================================="));
-    Serial.println("");
+    Serial.printf("Device ID: %s\n", deviceId.c_str());
+    Serial.printf("Firmware Version: %s\n", FIRMWARE_VERSION);
+    Serial.println(F("==================================\n"));
 }
 
 void doBroadcast() {
-  if (millis() - lastBcastMillis >= 10000UL) { // Broadcast every 10 seconds...
+  if ((millis() - lastBcastMillis) >= 10000UL) { // Broadcast every 10 seconds...
     udpService.begin(settings.getBcastPort());
     udpService.beginPacket(bcastAddress, settings.getBcastPort());
-    udpService.printf("TempBuddy-Sensor::%s::%s", ipAddr.c_str(), settings.getHeading().c_str());
+    udpService.printf("TempBuddy-Sensor::%s::%s", ipAddr.c_str(), deviceId.c_str());
     udpService.endPacket();
     udpService.stop();
+    
+    Serial.println("DEBUG: UDP Broadcast Sent!");
 
     lastBcastMillis = millis();
   }

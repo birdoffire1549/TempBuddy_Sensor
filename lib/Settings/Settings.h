@@ -72,8 +72,8 @@
                 String         apGateway         ;
                 int            bcastPort         ;
             } constSettings = {
-                "TempBuddy-Sensor", // <---- hostname
-                "TempBuddy_Sensor", // <---- apSsid
+                "TempBuddy", // <----------- hostname (*later ID is added)
+                "TempBuddy_Sensor_", // <---- apSsid (*later ID is added)
                 "P@ssw0rd123", // <--------- apPwd 
                 "192.168.1.1", // <--------- apNetIp
                 "255.255.255.0", // <------- apSubnet
@@ -114,8 +114,8 @@
             void           setIsCelsius      (bool isCelsius)         ;
             bool           getIsCelsius      ()                       ;
             
-            String         getHostname       ()                       ;
-            String         getApSsid         ()                       ;
+            String         getHostname       (String deviceId)        ;
+            String         getApSsid         (String deviceId)        ;
             String         getApPwd          ()                       ;
             String         getApNetIp        ()                       ;
             String         getApSubnet       ()                       ;    

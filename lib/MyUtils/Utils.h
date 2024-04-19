@@ -8,6 +8,8 @@
 
         public:
             static String hashNvSettings(struct NonVolatileSettings nvSet);
+            static String hashString(String string);
+            static String genDeviceIdFromMacAddr(String macAddress);
     };
 
 #endif

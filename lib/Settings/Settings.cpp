@@ -128,9 +128,11 @@ Getter and Setter Functions
 =================================================================
 */
 
-String Settings::getHostname() {
-  
-    return constSettings.hostname;
+String Settings::getHostname(String deviceId) {
+    String temp = constSettings.hostname;
+    temp.concat(deviceId);
+
+    return temp;
 }
 
 
@@ -183,9 +185,11 @@ void Settings::setAdminPwd(const char *pwd) {
 }
 
 
-String Settings::getApSsid() {
-
-    return constSettings.apSsid;
+String Settings::getApSsid(String deviceId) {
+    String temp = constSettings.apSsid;
+    temp.concat(deviceId);
+    
+    return temp;
 }
 
 
