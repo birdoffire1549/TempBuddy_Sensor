@@ -213,6 +213,12 @@ String Settings::getApGateway() {
 }
 
 
+int Settings::getBcastPort() {
+
+    return constSettings.bcastPort;
+}
+
+
 String Settings::getHeading() {
 
     return String(nvSettings.heading);

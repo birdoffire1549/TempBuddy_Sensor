@@ -77,6 +77,8 @@
 #include <Secrets.h>
 #include "HtmlContent.h"
 
+#include <WiFiUdp.h>
+
 #define FIRMWARE_VERSION "2.0.0"
 #define LED_PIN 2 // Output used for flashing out IP Address
 #define RESTORE_PIN 13 // Input used for factory reset button; Normally Low
@@ -89,11 +91,14 @@ WiFiServer server(80);
 AHT10 tempSensor = AHT10();
 BearSSL::ESP8266WebServerSecure webServer(/*Port*/443);
 BearSSL::ServerSessions serverCache(/*Sessions*/4);
+WiFiUDP udpService;
 
 // ************************************************************************************
 // Global worker variables
 // ************************************************************************************
 String ipAddr = "0.0.0.0";
+IPAddress bcastAddress;
+unsigned long lastBcastMillis = 0UL;
 
 void resetOrLoadSettings();
 void doStartAHT10();
@@ -112,6 +117,7 @@ bool displayDigit(int digit);
 void displayNextOctetIndicator();
 void displayDone();
 void dumpFirmwareVersion();
+void doBroadcast();
 
 /***************************** 
  * SETUP() - REQUIRED FUNCTION
@@ -276,8 +282,11 @@ void doStartNetwork() {
         ? WiFi.softAPIP().toString() 
         : WiFi.localIP().toString()
   );
+  Serial.printf("DEBUG:\n\tIP Address is: %s\n\tSubnet is: %s\n\n", ipAddr.c_str(), WiFi.subnetMask().toString().c_str());
+  bcastAddress = IpUtils::deriveNetworkBroadcastAddress(ipAddr, WiFi.subnetMask().toString());
 
   // Print the IP address...
+  Serial.printf("INFO: Calculated network subnetmask is: %s\n", bcastAddress.toString().c_str());
   Serial.printf("\nUse this URL to connect:\n\thttps://%s\n\n", ipAddr.c_str());
 }
 
@@ -624,4 +633,16 @@ void dumpFirmwareVersion() {
     Serial.println(FIRMWARE_VERSION);
     Serial.println(F("=================================="));
     Serial.println("");
+}
+
+void doBroadcast() {
+  if (millis() - lastBcastMillis >= 10000UL) { // Broadcast every 10 seconds...
+    udpService.begin(settings.getBcastPort());
+    udpService.beginPacket(bcastAddress, settings.getBcastPort());
+    udpService.printf("TempBuddy-Sensor::%s::%s", ipAddr.c_str(), settings.getHeading().c_str());
+    udpService.endPacket();
+    udpService.stop();
+
+    lastBcastMillis = millis();
+  }
 }

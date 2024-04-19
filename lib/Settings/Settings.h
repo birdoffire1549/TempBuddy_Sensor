@@ -70,13 +70,15 @@
                 String         apNetIp           ;
                 String         apSubnet          ;
                 String         apGateway         ;
+                int            bcastPort         ;
             } constSettings = {
                 "TempBuddy-Sensor", // <---- hostname
                 "TempBuddy_Sensor", // <---- apSsid
                 "P@ssw0rd123", // <--------- apPwd 
                 "192.168.1.1", // <--------- apNetIp
                 "255.255.255.0", // <------- apSubnet
-                "0.0.0.0" // <-------------- apGateway
+                "0.0.0.0", // <------------- apGateway
+                61549 // <------------------ bcastPort
             };
             
             void defaultSettings();
@@ -118,6 +120,7 @@
             String         getApNetIp        ()                       ;
             String         getApSubnet       ()                       ;    
             String         getApGateway      ()                       ;
+            int            getBcastPort      ()                       ;
     };
     
 #endif
