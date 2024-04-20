@@ -50,6 +50,19 @@
     const char PROGMEM ROOT_PAGE[] = {
         "Temperature:\t${temp}&deg;${unit}<br>"
         "Humidity:\t${humidity}%<br><br>"
+        "Device ID:\t${deviceid}<br><br>"
+    };
+
+    const char PROGMEM INFO_JSON[] = {
+        "{"
+            "\"title_text\": \"${title}\", "
+            "\"heading_text\": \"${heading}\", "
+            "\"device_id\": \"${deviceid}\", "
+            "\"hostname\": \"${hostname}\", "
+            "\"temp\": ${tempvalue}, "
+            "\"temp_unit\": \"${tempunit}\", "
+            "\"humidity_percent\": ${humidity}"
+        "}"
     };
 
 #endif

@@ -79,7 +79,7 @@
 
 #include <WiFiUdp.h>
 
-#define FIRMWARE_VERSION "2.0.0"
+#define FIRMWARE_VERSION "2.2.1"
 #define LED_PIN 2 // Output used for flashing out IP Address
 #define RESTORE_PIN 13 // Input used for factory reset button; Normally Low
 
@@ -107,6 +107,7 @@ void doStartNetwork();
 void checkIpDisplayRequest();
 void endpointHandlerRoot();
 void endpointHandlerAdmin();
+void endpointHandlerApiInfo();
 void notFoundHandler();
 void fileUploadHandler();
 bool handleAdminPageUpdates();
@@ -277,6 +278,7 @@ void doStartNetwork() {
   /* Setup Endpoint Handlers */
   webServer.on(F("/"), endpointHandlerRoot);
   webServer.on(F("/admin"), endpointHandlerAdmin);
+  webServer.on(F("/api/info"), endpointHandlerApiInfo);
   webServer.onNotFound(notFoundHandler);
   webServer.onFileUpload(fileUploadHandler);
 
@@ -310,6 +312,32 @@ void doStartAHT10() {
   }
 }
 
+/**
+ * #### API-INFO JSON ####
+ * This function handles an endpoint which sends information to the
+ * client in the form of JSON.
+*/
+void endpointHandlerApiInfo() {
+  String content = INFO_JSON;
+  
+  content.replace("${deviceid}", deviceId.c_str());
+  content.replace("${humidity}", String(tempSensor.readHumidity()).c_str());
+  content.replace("${title}", settings.getTitle().c_str());
+  content.replace("${heading}", settings.getHeading().c_str());
+  content.replace("${hostname}", settings.getHostname(deviceId).c_str());
+
+  if (settings.getIsCelsius()) {
+    content.replace("${tempvalue}", String(tempSensor.readTemperature()).c_str());
+    content.replace("${tempunit}", "C");
+  } else {
+    content.replace("${tempvalue}", String(((tempSensor.readTemperature() * 9/5) + 32)).c_str());
+    content.replace("${tempunit}", "F");
+  }
+
+  webServer.send(200, "application/json", content);
+  yield();
+}
+
 /******************************************************
  * INFO/ROOT PAGE
  * ****************************************************
@@ -325,6 +353,7 @@ void endpointHandlerRoot() {
     content.replace("${temp}", String(((tempSensor.readTemperature() * 9/5) + 32)).c_str());
     content.replace("${unit}", "F");
   }
+  content.replace("${deviceid}", deviceId.c_str());
   content.replace("${humidity}", String(tempSensor.readHumidity()).c_str());
    
   sendHtmlPageUsingTemplate(200, settings.getTitle(), settings.getHeading(), content);
@@ -647,8 +676,6 @@ void doBroadcast() {
     udpService.printf("TempBuddy-Sensor::%s::%s", ipAddr.c_str(), deviceId.c_str());
     udpService.endPacket();
     udpService.stop();
-    
-    Serial.println("DEBUG: UDP Broadcast Sent!");
 
     lastBcastMillis = millis();
   }
