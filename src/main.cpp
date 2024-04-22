@@ -87,7 +87,6 @@
 // Setup of Services
 // ************************************************************************************
 Settings settings = Settings();
-WiFiServer server(80);
 AHT10 tempSensor = AHT10();
 BearSSL::ESP8266WebServerSecure webServer(/*Port*/443);
 BearSSL::ServerSessions serverCache(/*Sessions*/4);
