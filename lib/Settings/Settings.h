@@ -17,8 +17,8 @@
     #include <ESP_EEPROM.h>
     #include <WString.h>
     #include <core_esp8266_features.h>
-    #include <HardwareSerial.h>
     #include <MD5Builder.h>
+    #include <Utils.h>
 
     // *****************************************************************************
     // Structure used for storing of settings related data and persisted into flash

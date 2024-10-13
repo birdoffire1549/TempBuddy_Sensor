@@ -75,11 +75,11 @@
 #include <Settings.h>
 #include <ExampleSecrets.h>
 #include <Secrets.h>
-#include "HtmlContent.h"
+#include <HtmlContent.h>
 
 #include <WiFiUdp.h>
 
-#define FIRMWARE_VERSION "2.2.1"
+#define FIRMWARE_VERSION "3.0.0"
 #define LED_PIN 2 // Output used for flashing out IP Address
 #define RESTORE_PIN 13 // Input used for factory reset button; Normally Low
 
@@ -97,6 +97,8 @@ WiFiUDP udpService;
 // ************************************************************************************
 String ipAddr = "0.0.0.0";
 String deviceId = "";
+float lastTempRead = MAXFLOAT;
+float lastHumidityRead = MAXFLOAT;
 IPAddress bcastAddress;
 unsigned long lastBcastMillis = 0UL;
 
@@ -117,7 +119,7 @@ void displayNextDigitIndicator();
 bool displayDigit(int digit);
 void displayNextOctetIndicator();
 void displayDone();
-void dumpFirmwareVersion();
+void doReadSensorData();
 void doBroadcast();
 
 /***************************** 
@@ -134,21 +136,10 @@ void setup() {
   /* Generate Device ID Based On MAC Address */
   deviceId = Utils::genDeviceIdFromMacAddr(WiFi.macAddress());
 
-  /* Initialize Serial */
-  Serial.begin(115200);
-  yield();
-  delay(15);
-
-  dumpFirmwareVersion();
-  
-  // Initialize the device...
-  Serial.println(F("\nInitializing device..."));
-
   resetOrLoadSettings();
   doStartAHT10(); // Temp/Humidity device
   doStartNetwork();
 
-  Serial.println(F("Initialization complete."));
   yield();
 }
 
@@ -159,9 +150,11 @@ void setup() {
  * Here is where all functionality happens or starts to happen.
  */
 void loop() {
+  doReadSensorData();
   doBroadcast();
   checkIpDisplayRequest();
   webServer.handleClient();
+
   yield();
 }
 
@@ -193,21 +186,10 @@ void checkIpDisplayRequest() {
  */
 void connectToNetwork() {
   // Connect to WiFi network...
-  Serial.print(F("\n\nConnecting to: "));
-  Serial.print(settings.getSsid());
-  
   WiFi.setOutputPower(20.5F);
   WiFi.setHostname(settings.getHostname(deviceId).c_str());
   WiFi.mode(WiFiMode::WIFI_STA);
   WiFi.begin(settings.getSsid(), settings.getPwd());
-
-  while (WiFi.status() != WL_CONNECTED) { // WiFi is not yet connected...
-    delay(500);
-    Serial.print(".");
-  }
-
-  Serial.println("");
-  Serial.println(F("WiFi connected."));
 }
 
 /**
@@ -216,8 +198,6 @@ void connectToNetwork() {
  * the device.
  */
 void activateAPMode() {
-  Serial.print(F("Configuring AP mode... "));
-  
   WiFi.setOutputPower(20.5F);
   WiFi.setHostname(settings.getHostname(deviceId).c_str());
   WiFi.mode(WiFiMode::WIFI_AP);
@@ -227,12 +207,7 @@ void activateAPMode() {
     IpUtils::stringIPv4ToIPAddress(settings.getApSubnet())
   );
 
-  bool ret = WiFi.softAP(settings.getApSsid(deviceId), settings.getApPwd());
-  if (ret) {
-    Serial.printf("\nUse the following to connect:\n\tSSID: %s\n\tPwd: %s\n\n", settings.getApSsid(deviceId).c_str(), settings.getApPwd().c_str());
-  } else {
-    Serial.println(F("ERROR: AP Setup Failed!"));
-  }
+  WiFi.softAP(settings.getApSsid(deviceId), settings.getApPwd());
 }
 
 /**
@@ -242,9 +217,7 @@ void activateAPMode() {
  */
 void resetOrLoadSettings() {
   if (digitalRead(RESTORE_PIN) == HIGH) { // Restore button pressed on boot...
-    Serial.println(F("\nPerforming Factory Reset..."));
     settings.factoryDefault();
-    Serial.println(F("Factory reset complete."));
     while(digitalRead(RESTORE_PIN) == HIGH) { // Wait for pin to be released to continue...
       yield();
     }
@@ -278,6 +251,7 @@ void doStartNetwork() {
   webServer.on(F("/"), endpointHandlerRoot);
   webServer.on(F("/admin"), endpointHandlerAdmin);
   webServer.on(F("/api/info"), endpointHandlerApiInfo);
+  
   webServer.onNotFound(notFoundHandler);
   webServer.onFileUpload(fileUploadHandler);
 
@@ -289,12 +263,7 @@ void doStartNetwork() {
         ? WiFi.softAPIP().toString() 
         : WiFi.localIP().toString()
   );
-  Serial.printf("DEBUG:\n\tIP Address is: %s\n\tSubnet is: %s\n\n", ipAddr.c_str(), WiFi.subnetMask().toString().c_str());
   bcastAddress = IpUtils::deriveNetworkBroadcastAddress(ipAddr, WiFi.subnetMask().toString());
-
-  // Print the IP address...
-  Serial.printf("INFO: Calculated network subnetmask is: %s\n", bcastAddress.toString().c_str());
-  Serial.printf("\nUse this URL to connect:\n\thttps://%s\n\n", ipAddr.c_str());
 }
 
 /**
@@ -303,12 +272,7 @@ void doStartNetwork() {
  */
 void doStartAHT10() {
   // Initialize the AHT10 Sensor...  
-  Serial.print(F("AHT10 initialization... "));
-  if (tempSensor.begin()) { // Sensor started...
-    Serial.println(F("Complete."));
-  } else { // Sensor failed...
-    Serial.println(F("Failed!"));
-  }
+  tempSensor.begin();
 }
 
 /**
@@ -320,16 +284,16 @@ void endpointHandlerApiInfo() {
   String content = INFO_JSON;
   
   content.replace("${deviceid}", deviceId.c_str());
-  content.replace("${humidity}", String(tempSensor.readHumidity()).c_str());
+  content.replace("${humidity}", String(lastHumidityRead).c_str());
   content.replace("${title}", settings.getTitle().c_str());
   content.replace("${heading}", settings.getHeading().c_str());
   content.replace("${hostname}", settings.getHostname(deviceId).c_str());
 
   if (settings.getIsCelsius()) {
-    content.replace("${tempvalue}", String(tempSensor.readTemperature()).c_str());
+    content.replace("${tempvalue}", String(lastTempRead).c_str());
     content.replace("${tempunit}", "C");
   } else {
-    content.replace("${tempvalue}", String(((tempSensor.readTemperature() * 9/5) + 32)).c_str());
+    content.replace("${tempvalue}", String(((lastTempRead * 9/5) + 32)).c_str());
     content.replace("${tempunit}", "F");
   }
 
@@ -346,14 +310,14 @@ void endpointHandlerRoot() {
   // Build and send Information Page...
   String content = ROOT_PAGE;
   if (settings.getIsCelsius()) {
-    content.replace("${temp}", String(tempSensor.readTemperature()).c_str());
+    content.replace("${temp}", String(lastTempRead).c_str());
     content.replace("${unit}", "C");
   } else {
-    content.replace("${temp}", String(((tempSensor.readTemperature() * 9/5) + 32)).c_str());
+    content.replace("${temp}", String(((lastTempRead * 9/5) + 32)).c_str());
     content.replace("${unit}", "F");
   }
   content.replace("${deviceid}", deviceId.c_str());
-  content.replace("${humidity}", String(tempSensor.readHumidity()).c_str());
+  content.replace("${humidity}", String(lastHumidityRead).c_str());
    
   sendHtmlPageUsingTemplate(200, settings.getTitle(), settings.getHeading(), content);
 }
@@ -365,14 +329,11 @@ void endpointHandlerRoot() {
  */
 void endpointHandlerAdmin() {
   /* Ensure user authenticated */
-  Serial.println(F("Client requested access to '/admin'."));
   if (!webServer.authenticate(settings.getAdminUser().c_str(), settings.getAdminPwd().c_str())) { // User not authenticated...
-    Serial.println(F("Client not(yet) Authenticated!"));
-
+    
     return webServer.requestAuthentication(DIGEST_AUTH, "AdminRealm", "Authentication failed!");
   }
-  Serial.println(F("Client has been Authenticated."));
-
+  
   String content = ADMIN_PAGE;
 
   content.replace("${ssid}", settings.getSsid());
@@ -556,10 +517,6 @@ void sendHtmlPageUsingTemplate(int code, String title, String heading, String &c
  * FALSE then entire IP is signaled.
  */
 void signalIpAddress(String ipAddress, bool quick) {
-  dumpFirmwareVersion();
-
-  Serial.printf("IP Address: %s\n\n", ipAddress.c_str());
-
   if (!quick) { // Whole IP Requested...
     int octet[3];
     
@@ -656,26 +613,31 @@ void displayDone() {
   }
 }
 
-/**
- * The purpose of this function is to simply dump the software
- * version to the serial console as desired. Additional information
- * can be added here if needed going forward.
-*/
-void dumpFirmwareVersion() {
-    Serial.println(F("\n\n=================================="));
-    Serial.printf("Device ID: %s\n", deviceId.c_str());
-    Serial.printf("Firmware Version: %s\n", FIRMWARE_VERSION);
-    Serial.println(F("==================================\n"));
+void doReadSensorData() {
+  static ulong lastReadMillis = 0ul;
+  if ((millis() < lastReadMillis ? (__LONG_MAX__ - lastReadMillis + millis()) : (millis() - lastReadMillis)) >= 30000ul) {
+    // Time to do routine with accounting for rollover
+    lastTempRead = tempSensor.readTemperature();
+    lastHumidityRead = tempSensor.readHumidity();
+    lastReadMillis = millis();
+  }
 }
 
 void doBroadcast() {
-  if ((millis() - lastBcastMillis) >= 10000UL) { // Broadcast every 10 seconds...
+  static ulong lastBCastMillis = 0ul;
+  if ((millis() < lastBCastMillis ? (__LONG_MAX__ - lastBCastMillis + millis()) : (millis() - lastBCastMillis)) >= 10000UL) { // Broadcast every 10 seconds...
     udpService.begin(settings.getBcastPort());
     udpService.beginPacket(bcastAddress, settings.getBcastPort());
-    udpService.printf("TempBuddy-Sensor::%s::%s", ipAddr.c_str(), deviceId.c_str());
+    udpService.printf(
+      "TempBuddy-Sensor::%s::%s::T_%f::H_%f", 
+      ipAddr.c_str(), 
+      deviceId.c_str(), 
+      lastTempRead,
+      lastHumidityRead
+    );
     udpService.endPacket();
     udpService.stop();
 
-    lastBcastMillis = millis();
+    lastBCastMillis = millis();
   }
 }

@@ -10,8 +10,7 @@
   Date: 10-01-2023
 */
 
-#include "Settings.h"
-#include <Utils.h>
+#include <Settings.h>
 
 /**
  * #### CLASS CONSTRUCTOR ####
@@ -58,20 +57,14 @@ bool Settings::loadSettings() {
 
     /* Load from EEPROM if applicable... */
     if (EEPROM.percentUsed() >= 0) { // Something is stored from prior...
-        Serial.println(F("\nLoading settings from EEPROM..."));
         EEPROM.get(0, nvSettings);
         if (strcmp(nvSettings.sentinel, Utils::hashNvSettings(nvSettings).c_str()) != 0) { // Memory is corrupt...
             EEPROM.wipe();
             factoryDefault();
-            Serial.println("Stored settings footprint invalid, stored settings have been wiped and defaulted!");
         } else { // Memory seems ok...
-            Serial.print(F("Percent of ESP Flash currently used is: "));
-            Serial.print(EEPROM.percentUsed());
-            Serial.println(F("%"));
             ok = true;
         }
     }
-    
     EEPROM.end();
 
     return ok;
