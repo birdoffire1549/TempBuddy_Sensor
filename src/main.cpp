@@ -79,7 +79,7 @@
 
 #include <WiFiUdp.h>
 
-#define FIRMWARE_VERSION "3.0.0"
+#define FIRMWARE_VERSION "3.0.1"
 #define LED_PIN 2 // Output used for flashing out IP Address
 #define RESTORE_PIN 13 // Input used for factory reset button; Normally Low
 
@@ -100,7 +100,6 @@ String deviceId = "";
 float lastTempRead = MAXFLOAT;
 float lastHumidityRead = MAXFLOAT;
 IPAddress bcastAddress;
-unsigned long lastBcastMillis = 0UL;
 
 void resetOrLoadSettings();
 void doStartAHT10();
