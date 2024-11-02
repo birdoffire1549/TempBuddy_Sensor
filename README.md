@@ -72,10 +72,10 @@ As you can see from the above, a little more information about the device is als
 The TempBuddy Sensor also has a broadcast capability which may be useful should one wish to use the device with other devices and/or applications. The broadcast feature causes the unit to send out a network wide broadcast once every 10 seconds. The broadcast is a UDP broadcast on port 61549 that will look something like this:
 
 ```
-TempBuddy-Sensor::192.168.123.31::A4C372
+TempBuddy-Sensor::192.168.123.31::A4C372::T_19.727415::H_45.495785
 ```
 
-The first part of the string message will always be the text `TempBuddy-Sensor` followed by `::`. Actually, the message is made up of 3 parts, each separated by double-colons. The first part is the unchanging text mentioned prior. The second part is the IP Address of the device. The third part is the Device ID.
+The first part of the string message will always be the text `TempBuddy-Sensor` followed by `::`. Actually, the message is made up of 5 parts, each separated by double-colons. The first part is the unchanging text mentioned prior. The second part is the IP Address of the device. The third part is the Device ID. The forth part is the Temperature in celcius prepended with a static `T_` and finally the fith part is the humidity percentage prepended with a static `H_`.
 
 ## Building the Unit's Hardware
 I have documented the hardware build process and design for the TempBuddy Sensor unit as an Instructables Page. 

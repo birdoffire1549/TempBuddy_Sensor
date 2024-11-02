@@ -69,6 +69,7 @@
 #include <ESP8266WiFi.h>
 #include <AHT10.h>
 #include <ESP8266WebServerSecure.h>
+#include <DNSServer.h>
 
 #include <Utils.h>
 #include <IpUtils.h>
@@ -79,7 +80,7 @@
 
 #include <WiFiUdp.h>
 
-#define FIRMWARE_VERSION "3.0.1"
+#define FIRMWARE_VERSION "4.0.0"
 #define LED_PIN 2 // Output used for flashing out IP Address
 #define RESTORE_PIN 13 // Input used for factory reset button; Normally Low
 
@@ -91,11 +92,11 @@ AHT10 tempSensor = AHT10();
 BearSSL::ESP8266WebServerSecure webServer(/*Port*/443);
 BearSSL::ServerSessions serverCache(/*Sessions*/4);
 WiFiUDP udpService;
+DNSServer dnsServer;
 
 // ************************************************************************************
 // Global worker variables
 // ************************************************************************************
-String ipAddr = "0.0.0.0";
 String deviceId = "";
 float lastTempRead = MAXFLOAT;
 float lastHumidityRead = MAXFLOAT;
@@ -120,6 +121,7 @@ void displayNextOctetIndicator();
 void displayDone();
 void doReadSensorData();
 void doBroadcast();
+String getIpAddress(void);
 
 /***************************** 
  * SETUP() - REQUIRED FUNCTION
@@ -153,6 +155,7 @@ void loop() {
   doBroadcast();
   checkIpDisplayRequest();
   webServer.handleClient();
+  dnsServer.processNextRequest();
 
   yield();
 }
@@ -172,9 +175,9 @@ void checkIpDisplayRequest() {
   }
   
   if (counter > 0 && counter < 6) {
-    signalIpAddress(ipAddr, true);
+    signalIpAddress(getIpAddress(), true);
   } else if (counter >= 6) {
-    signalIpAddress(ipAddr, false);
+    signalIpAddress(getIpAddress(), false);
   }
 }
 
@@ -185,10 +188,26 @@ void checkIpDisplayRequest() {
  */
 void connectToNetwork() {
   // Connect to WiFi network...
+  dnsServer.stop();
   WiFi.setOutputPower(20.5F);
   WiFi.setHostname(settings.getHostname(deviceId).c_str());
   WiFi.mode(WiFiMode::WIFI_STA);
   WiFi.begin(settings.getSsid(), settings.getPwd());
+}
+
+/**
+ * This function is used to get the IP Address of the device regardless if it is in 
+ * AP mode or connected to an external WiFi Network.
+ * 
+ * @return Returns the IP Address of this device in dot notation as String.
+*/
+String getIpAddress() {
+  if (WiFi.getMode() == WiFiMode::WIFI_AP) { // WiFi is in AP mode...
+
+    return WiFi.softAPIP().toString();
+  } // ELSE: WiFi is not in AP mode...
+  
+  return WiFi.localIP().toString();
 }
 
 /**
@@ -207,6 +226,7 @@ void activateAPMode() {
   );
 
   WiFi.softAP(settings.getApSsid(deviceId), settings.getApPwd());
+  dnsServer.start(53u, "*", IpUtils::stringIPv4ToIPAddress(settings.getApNetIp()));
 }
 
 /**
@@ -257,12 +277,7 @@ void doStartNetwork() {
   webServer.begin();
   Serial.println(F("\nServer started."));
   
-  ipAddr = (
-    (WiFi.getMode() == WiFiMode_t::WIFI_AP) 
-        ? WiFi.softAPIP().toString() 
-        : WiFi.localIP().toString()
-  );
-  bcastAddress = IpUtils::deriveNetworkBroadcastAddress(ipAddr, WiFi.subnetMask().toString());
+  bcastAddress = IpUtils::deriveNetworkBroadcastAddress(getIpAddress(), WiFi.subnetMask().toString());
 }
 
 /**
@@ -628,8 +643,9 @@ void doBroadcast() {
     udpService.begin(settings.getBcastPort());
     udpService.beginPacket(bcastAddress, settings.getBcastPort());
     udpService.printf(
-      "TempBuddy-Sensor::%s::%s::T_%f::H_%f", 
-      ipAddr.c_str(), 
+      "TempBuddy-Sensor::%s::%s::%s::T_%f::H_%f", 
+      getIpAddress().c_str(), 
+      "Shed",
       deviceId.c_str(), 
       lastTempRead,
       lastHumidityRead
