@@ -15,6 +15,7 @@ String Utils::hashNvSettings(struct NonVolatileSettings nvSet) {
     content = content + String(nvSet.adminPwd);
     content = content + String(nvSet.title);
     content = content + String(nvSet.heading);
+    content = content + String(nvSet.location);
     content = content + String(nvSet.isCelsius);
 
     MD5Builder builder = MD5Builder();

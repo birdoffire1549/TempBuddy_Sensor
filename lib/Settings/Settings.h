@@ -30,6 +30,7 @@
         char           adminPwd         [13]  ;
         char           title            [51]  ;
         char           heading          [51]  ;
+        char           location         [51]  ;
         char           isCelsius        [6]   ;
         char           sentinel         [33]  ; // Holds a 32 MD5 hash + 1
     };
@@ -44,6 +45,7 @@
                 "admin", // <---------------- adminPwd
                 "TempBuddy Sensor", // <----- title
                 "Temp Info", // <------------ heading
+                "Unknown", // <-------------- location
                 "false", // <---------------- isCelsius
                 "NA" // <-------------------- sentinel
             };
@@ -111,6 +113,8 @@
             String         getTitle          ()                       ;
             void           setHeading        (const char* heading)    ;
             String         getHeading        ()                       ;
+            void           setLocation       (const char* location)   ;
+            String         getLocation       ()                       ;
             void           setIsCelsius      (bool isCelsius)         ;
             bool           getIsCelsius      ()                       ;
             

@@ -49,19 +49,21 @@ bool Settings::factoryDefault() {
 */
 bool Settings::loadSettings() {
     bool ok = false;
-    // Setup EEPROM for loading and saving...
+    // Setup EEPROM for loading and saving
     EEPROM.begin(sizeof(NonVolatileSettings));
 
-    // Persist default settings or load settings...
+    // Persist default settings or load settings
     delay(15);
 
-    /* Load from EEPROM if applicable... */
-    if (EEPROM.percentUsed() >= 0) { // Something is stored from prior...
+    /* Load from EEPROM if applicable */
+    if (EEPROM.percentUsed() >= 0) { 
+        // Something is stored from prior
         EEPROM.get(0, nvSettings);
         if (strcmp(nvSettings.sentinel, Utils::hashNvSettings(nvSettings).c_str()) != 0) { // Memory is corrupt...
             EEPROM.wipe();
             factoryDefault();
-        } else { // Memory seems ok...
+        } else { 
+            // Memory seems ok
             ok = true;
         }
     }
@@ -240,6 +242,18 @@ void Settings::setTitle(const char *title) {
 }
 
 
+String Settings::getLocation() {
+
+    return String(nvSettings.location);
+}
+
+void Settings::setLocation(const char *location) {
+    if (sizeof(location) <= sizeof(nvSettings.location)) {
+        strcpy(nvSettings.location, location);
+    }
+}
+
+
 bool Settings::getIsCelsius() {
 
     return ((String(nvSettings.isCelsius).equalsIgnoreCase("true")) ? true : false);
@@ -269,6 +283,7 @@ void Settings::defaultSettings() {
     strcpy(nvSettings.adminPwd, factorySettings.adminPwd);
     strcpy(nvSettings.title, factorySettings.title);
     strcpy(nvSettings.heading, factorySettings.heading);
+    strcpy(nvSettings.location, factorySettings.location);
     strcpy(nvSettings.isCelsius, factorySettings.isCelsius);
     strcpy(nvSettings.sentinel, Utils::hashNvSettings(factorySettings).c_str());
 

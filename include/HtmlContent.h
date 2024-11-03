@@ -33,6 +33,7 @@
             "<h2>Application</h2> "
             "Title: <input maxlength=\"50\" type=\"text\" value=\"${title}\" name=\"title\" id=\"title\"> <br> "
             "Heading: <input maxlength=\"50\" type=\"text\" value=\"${heading}\" name=\"heading\" id=\"heading\"> <br> "
+            "Location: <input maxlength=\"50\" type=\"text\" value=\"${location}\" name=\"location\" id=\"location\"> <br>"
             "Units:<br>"
             "<input type=\"radio\" id=\"celsius\" name=\"units\" value=\"celsius\" ${unitcchecked}>"
             "<label for=\"celsius\">Celsius</label>"

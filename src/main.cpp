@@ -68,19 +68,17 @@
 #include <ESP_EEPROM.h>
 #include <ESP8266WiFi.h>
 #include <AHT10.h>
-#include <ESP8266WebServerSecure.h>
+#include <ESP8266WebServer.h>
 #include <DNSServer.h>
 
 #include <Utils.h>
 #include <IpUtils.h>
 #include <Settings.h>
-#include <ExampleSecrets.h>
-#include <Secrets.h>
 #include <HtmlContent.h>
 
 #include <WiFiUdp.h>
 
-#define FIRMWARE_VERSION "4.0.0"
+#define FIRMWARE_VERSION "4.1.0"
 #define LED_PIN 2 // Output used for flashing out IP Address
 #define RESTORE_PIN 13 // Input used for factory reset button; Normally Low
 
@@ -89,8 +87,7 @@
 // ************************************************************************************
 Settings settings = Settings();
 AHT10 tempSensor = AHT10();
-BearSSL::ESP8266WebServerSecure webServer(/*Port*/443);
-BearSSL::ServerSessions serverCache(/*Sessions*/4);
+ESP8266WebServer webServer(80);
 WiFiUDP udpService;
 DNSServer dnsServer;
 
@@ -154,6 +151,7 @@ void loop() {
   doReadSensorData();
   doBroadcast();
   checkIpDisplayRequest();
+
   webServer.handleClient();
   dnsServer.processNextRequest();
 
@@ -202,10 +200,12 @@ void connectToNetwork() {
  * @return Returns the IP Address of this device in dot notation as String.
 */
 String getIpAddress() {
-  if (WiFi.getMode() == WiFiMode::WIFI_AP) { // WiFi is in AP mode...
+  if (WiFi.getMode() == WiFiMode::WIFI_AP) { 
+    // WiFi is in AP mode
 
     return WiFi.softAPIP().toString();
-  } // ELSE: WiFi is not in AP mode...
+  } 
+  // WiFi is not in AP mode
   
   return WiFi.localIP().toString();
 }
@@ -252,20 +252,15 @@ void resetOrLoadSettings() {
  * existing WiFi based on settings.
  */
 void doStartNetwork() {
-  // Connect to wireless or enable AP Mode...
-  if (!settings.isNetworkSet()) { // Network settings weren't set...
+  // Connect to wireless or enable AP Mode
+  if (!settings.isNetworkSet()) { 
+    // Network settings weren't set
     activateAPMode();
-  } else { // Normal mode connects to WiFi...
+  } else { 
+    // Normal mode connects to WiFi
     connectToNetwork();
   }
   
-  #ifndef Secrets_h
-    webServer.getServer().setRSACert(new BearSSL::X509List(SAMPLE_SERVER_CERT), new BearSSL::PrivateKey(SAMPLE_SERVER_KEY));
-  #else
-    webServer.getServer().setRSACert(new BearSSL::X509List(server_cert), new BearSSL::PrivateKey(server_key));
-  #endif
-  webServer.getServer().setCache(&serverCache);
-
   /* Setup Endpoint Handlers */
   webServer.on(F("/"), endpointHandlerRoot);
   webServer.on(F("/admin"), endpointHandlerAdmin);
@@ -285,7 +280,7 @@ void doStartNetwork() {
  * preparing it for use.
  */
 void doStartAHT10() {
-  // Initialize the AHT10 Sensor...  
+  // Initialize the AHT10 Sensor
   tempSensor.begin();
 }
 
@@ -354,12 +349,15 @@ void endpointHandlerAdmin() {
   content.replace("${pwd}", settings.getPwd());
   content.replace("${title}", settings.getTitle());
   content.replace("${heading}", settings.getHeading());
+  content.replace("${location}", settings.getLocation());
   content.replace("${adminuser}", settings.getAdminUser());
   content.replace("${adminpwd}", settings.getAdminPwd());
-  if (settings.getIsCelsius()) { // Units are in Celsius...
+  if (settings.getIsCelsius()) { 
+    // Units are in Celsius...
     content.replace("${unitcchecked}", "checked");
     content.replace("${unitfchecked}", "");
-  } else { // Units are in Fahrenheit...
+  } else { 
+    // Units are in Fahrenheit...
     content.replace("${unitcchecked}", "");
     content.replace("${unitfchecked}", "checked");
   }
@@ -383,6 +381,7 @@ bool handleAdminPageUpdates() {
   String pwd = webServer.arg("pwd");
   String title = webServer.arg("title");
   String heading = webServer.arg("heading");
+  String location = webServer.arg("location");
   String units = webServer.arg("units");
   String adminUser = webServer.arg("adminuser");
   String adminPwd = webServer.arg("adminpwd");
@@ -391,43 +390,67 @@ bool handleAdminPageUpdates() {
   bool needReboot = false;
 
   /* Verify and Set SSID */
-  if (!ssid.isEmpty() && ssid.length() < sizeof(example.ssid)) { // Not empty and under size limit...
-    if (!settings.getSsid().equals(ssid)) { // Incoming is different than existing...
+  if (!ssid.isEmpty() && ssid.length() < sizeof(example.ssid)) { 
+    // Not empty and under size limit
+    if (!settings.getSsid().equals(ssid)) { 
+      // Incoming is different than existing
       isUpdate = true;
       needReboot = true;
       settings.setSsid(ssid.c_str());
     }
   }
+
   /* Verify and Set PWD */
-  if (!pwd.isEmpty() && pwd.length() < sizeof(example.pwd)) { // Not empty and under size limit...
-    if (!settings.getPwd().equals(pwd)) { // Incoming is different than existing...
+  if (!pwd.isEmpty() && pwd.length() < sizeof(example.pwd)) { 
+    // Not empty and under size limit
+    if (!settings.getPwd().equals(pwd)) { 
+      // Incoming is different than existing
       isUpdate = true;
       needReboot = true;
       settings.setPwd(pwd.c_str());
     }
   }
+
   /* Verify and Set Title */
-  if (!title.isEmpty() && title.length() < sizeof(example.title)) { // Not empty and under size limit...
-    if (!settings.getTitle().equals(title)) { // Incoming is different than existing...
+  if (!title.isEmpty() && title.length() < sizeof(example.title)) { 
+    // Not empty and under size limit
+    if (!settings.getTitle().equals(title)) { 
+      // Incoming is different than existing
       isUpdate = true;
       settings.setTitle(title.c_str());
     }
   }
+
   /* Verify and Set Heading */
-  if (!heading.isEmpty() && heading.length() < sizeof(example.heading)) { // Not empty and under size limit...
-    if (!settings.getHeading().equals(heading)) { // Incoming is different than existing...
+  if (!heading.isEmpty() && heading.length() < sizeof(example.heading)) { 
+    // Not empty and under size limit
+    if (!settings.getHeading().equals(heading)) { 
+      // Incoming is different than existing
       isUpdate = true;
       settings.setHeading(heading.c_str());
     }
   }
+
+  /* Verify and Set Location */
+  if (!location.isEmpty() && location.length() < sizeof(example.location)) { 
+    // Not empty and under size limit
+    if (!settings.getLocation().equals(location)) { 
+      // Incoming is different than existing
+      isUpdate = true;
+      settings.setLocation(location.c_str());
+    }
+  }
+
   /* Verify and Set isCelsius */
-  if (!units.isEmpty()) { // Not empty...
+  if (!units.isEmpty()) { 
+    // Not empty
     if (
       (
         units.equalsIgnoreCase("fahrenheit") 
         || units.equalsIgnoreCase("f")
       ) && settings.getIsCelsius() == true
-    ) { // Incoming is understood and different than existing...
+    ) { 
+      // Incoming is understood and different than existing
       isUpdate = true;
       settings.setIsCelsius(false);
     } else if (
@@ -435,21 +458,28 @@ bool handleAdminPageUpdates() {
         units.equalsIgnoreCase("celsius")
         || units.equalsIgnoreCase("c")
       ) && settings.getIsCelsius() == false
-    ) { // Incoming is understood and different than existing...
+    ) { 
+      // Incoming is understood and different than existing
       isUpdate = true;
       settings.setIsCelsius(true);
     }
   }
+
   /* Verify and Set AdminUser */
-  if (!adminUser.isEmpty() && adminUser.length() < sizeof(example.adminUser)) { // Not empty and under size limit...
-    if (!settings.getAdminUser().equals(adminUser)) { // Incoming is different than existing...
+  if (!adminUser.isEmpty() && adminUser.length() < sizeof(example.adminUser)) { 
+    // Not empty and under size limit
+    if (!settings.getAdminUser().equals(adminUser)) { 
+      // Incoming is different than existing
       isUpdate = true;
       settings.setAdminUser(adminUser.c_str());
     }
   }
+
   /* Verify and Set AdminPwd */
-  if (!adminPwd.isEmpty() && adminPwd.length() < sizeof(example.adminPwd)) { // Not empty and under size limit...
-    if (!settings.getAdminPwd().equals(adminPwd)) { // Incoming is different than existing...
+  if (!adminPwd.isEmpty() && adminPwd.length() < sizeof(example.adminPwd)) { 
+    // Not empty and under size limit
+    if (!settings.getAdminPwd().equals(adminPwd)) { 
+      // Incoming is different than existing
       isUpdate = true;
       settings.setAdminPwd(adminPwd.c_str());
     }
@@ -457,23 +487,27 @@ bool handleAdminPageUpdates() {
 
   /* Persist Data If Updated */
   if (isUpdate) {
-    if (settings.saveSettings()) { // Successful...
-      if (needReboot) { // Needs to reboot...
+    if (settings.saveSettings()) { 
+      // Successful
+      if (needReboot) { 
+        // Needs to reboot
         String content = "<h3>Settings update Successful!</h3><h4>Device will reboot now...</h4>";
         sendHtmlPageUsingTemplate(200, settings.getTitle(), "Update Result", content);
         yield();
         delay(5000);
 
         ESP.restart();
-      } else { // No reboot needed; Send to home page...
+      } else { 
+        // No reboot needed; Send to home page
         String content = "<h3>Settings update Successful!</h3><a href='/'><h4>Home Page</h4></a>";
         sendHtmlPageUsingTemplate(200, settings.getTitle(), "Update Result", content);
 
         return true;
       }
-    } else { // Error...
+    } else { 
+      // Error
       String content = "<h3>Error Saving Settings!!!</h3>";
-       sendHtmlPageUsingTemplate(500, settings.getTitle(), "500 - Internal Server Error", content);
+      sendHtmlPageUsingTemplate(500, settings.getTitle(), "500 - Internal Server Error", content);
 
       return true;
     }
@@ -531,7 +565,8 @@ void sendHtmlPageUsingTemplate(int code, String title, String heading, String &c
  * FALSE then entire IP is signaled.
  */
 void signalIpAddress(String ipAddress, bool quick) {
-  if (!quick) { // Whole IP Requested...
+  if (!quick) { 
+    // Whole IP Requested
     int octet[3];
     
     int index = ipAddress.indexOf('.');
@@ -541,7 +576,8 @@ void signalIpAddress(String ipAddress, bool quick) {
     octet[1] = ipAddress.substring(index + 1, index2).toInt();
     octet[2] = ipAddress.substring(index2 + 1, index3).toInt();
 
-    for (int i = 0; i < 3; i++) { // Iterate first 3 octets and signal...
+    for (int i = 0; i < 3; i++) { 
+      // Iterate first 3 octets and signal
       displayOctet(octet[i]);
       displayNextOctetIndicator();
     }
@@ -575,7 +611,8 @@ void displayOctet(int octet) {
 bool displayDigit(int digit) {
   digitalWrite(LED_PIN, HIGH); // off
   bool result = false; // Indicates a non-zero value if true.
-  for (int i = 0; i < digit; i++) { // Once per value of the digit...
+  for (int i = 0; i < digit; i++) { 
+    // Once per value of the digit
     result = true;
     digitalWrite(LED_PIN, LOW);
     delay(500);
@@ -589,6 +626,7 @@ bool displayDigit(int digit) {
 /**
  * Displays or signals the separator between octets which
  * is simply 2 Next Digit Indicators.
+ * 
  */
 void displayNextOctetIndicator() {
   displayNextDigitIndicator();
@@ -598,11 +636,13 @@ void displayNextOctetIndicator() {
 /*
  * This displays the Next Digit Indicator which is simply a way to visually
  * break up digit flashes.
+ * 
  */
 void displayNextDigitIndicator() {
   digitalWrite(LED_PIN, HIGH);
   delay(700);
-  for (int i = 0; i < 3; i++) { // Flash 3 times...
+  for (int i = 0; i < 3; i++) { 
+    // Flash 3 times
     digitalWrite(LED_PIN, LOW);
     delay(100);
     digitalWrite(LED_PIN, HIGH);
@@ -619,7 +659,8 @@ void displayNextDigitIndicator() {
 void displayDone() {
   digitalWrite(LED_PIN, HIGH); // Start off
   delay(1000);
-  for (int i = 0; i < 20; i++) { // Do 20 flashes...
+  for (int i = 0; i < 20; i++) { 
+    // Do 20 flashes
     digitalWrite(LED_PIN, LOW);
     delay(100);
     digitalWrite(LED_PIN, HIGH);
@@ -627,6 +668,11 @@ void displayDone() {
   }
 }
 
+/**
+ * This function handles reading and storing teperature data from the 
+ * attached sensor.
+ * 
+ */
 void doReadSensorData() {
   static ulong lastReadMillis = 0ul;
   if ((millis() < lastReadMillis ? (__LONG_MAX__ - lastReadMillis + millis()) : (millis() - lastReadMillis)) >= 30000ul) {
@@ -637,9 +683,14 @@ void doReadSensorData() {
   }
 }
 
+/**
+ * Handles sending network broadcasts.
+ *  
+ */
 void doBroadcast() {
   static ulong lastBCastMillis = 0ul;
-  if ((millis() < lastBCastMillis ? (__LONG_MAX__ - lastBCastMillis + millis()) : (millis() - lastBCastMillis)) >= 10000UL) { // Broadcast every 10 seconds...
+  if ((millis() < lastBCastMillis ? (__LONG_MAX__ - lastBCastMillis + millis()) : (millis() - lastBCastMillis)) >= 10000UL) { 
+    // Broadcast every 10 seconds...
     udpService.begin(settings.getBcastPort());
     udpService.beginPacket(bcastAddress, settings.getBcastPort());
     udpService.printf(
